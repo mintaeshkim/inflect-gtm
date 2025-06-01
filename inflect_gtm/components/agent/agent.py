@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from inflect.components.utils.llm import call_llm
+from inflect_gtm.components.utils.llm import call_llm
 
 
 class Agent:

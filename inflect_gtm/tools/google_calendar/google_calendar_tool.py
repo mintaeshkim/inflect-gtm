@@ -62,3 +62,23 @@ class GoogleCalendarTool(Tool):
 
     def get_upcoming_events(self, context: Dict[str, Any]) -> Dict[str, Any]:
         return get_upcoming_events(context)
+    
+
+if __name__ == "__main__":
+    print("🚀 Testing Google Calendar Tool...")
+
+    tool = GoogleCalendarTool()
+    test_context = {"n": 3}  # 최대 3개의 다가오는 이벤트 요청
+
+    result = tool.run(test_context)
+
+    if "error" in result.get("GoogleCalendar", {}):
+        print("❌ Error:", result["GoogleCalendar"]["error"])
+    else:
+        events = result.get("GoogleCalendar", {}).get("events", [])
+        if not events:
+            print("⚠️ No upcoming events found.")
+        else:
+            print("✅ Upcoming Events:")
+            for i, event in enumerate(events, 1):
+                print(f"{i}. {event['summary']} ({event['start']} ~ {event['end']})")
