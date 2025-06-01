@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+inflect_gtm/__init__.py
+inflect_gtm/app.py
+inflect_gtm.egg-info/PKG-INFO
+inflect_gtm.egg-info/SOURCES.txt
+inflect_gtm.egg-info/dependency_links.txt
+inflect_gtm.egg-info/requires.txt
+inflect_gtm.egg-info/top_level.txt
