@@ -4,7 +4,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from typing import Dict, Any
-from inflect.components import Tool
+from inflect_gtm.components import Tool
 
 
 SCOPES = ['https://www.googleapis.com/auth/documents']

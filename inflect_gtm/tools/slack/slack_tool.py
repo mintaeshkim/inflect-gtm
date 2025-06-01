@@ -2,7 +2,7 @@ import os
 import requests
 from typing import Dict, Any
 from dotenv import load_dotenv
-from inflect.components import Tool
+from inflect_gtm.components import Tool
 
 
 # Load environment variables from .env file in this directory

@@ -7,6 +7,8 @@ class GlobalMemory:
             "segments": None,
             "onboarding_docs": None,
             "emails_sent": None,
+            "meeting_summary": None,
+            "upcoming_events": None,
         }
 
     def set(self, key, value):
