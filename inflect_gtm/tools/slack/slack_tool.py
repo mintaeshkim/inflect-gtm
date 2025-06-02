@@ -4,10 +4,9 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from inflect_gtm.components import Tool
 
-
-# Load environment variables from .env file in this directory
-env_path = os.path.join(os.path.dirname(__file__), ".env")
-load_dotenv(dotenv_path=env_path)
+# Load environment variables from .env
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+load_dotenv(dotenv_path=os.path.join(project_root, ".env"))
 
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")

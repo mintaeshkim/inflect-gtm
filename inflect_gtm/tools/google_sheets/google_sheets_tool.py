@@ -5,8 +5,13 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from inflect_gtm.components import Tool
+from dotenv import load_dotenv
 
+# Load environment variables from .env
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+load_dotenv(dotenv_path=os.path.join(project_root, ".env"))
 
+# Google Sheets API scopes
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive.metadata.readonly'
@@ -17,17 +22,19 @@ class GoogleSheetsTool(Tool):
         super().__init__(name="GoogleSheets", function=self.read_sheet)
 
     def get_credentials(self):
+        cred_path = os.path.join(project_root, os.getenv("GOOGLE_CREDENTIALS_PATH"))
+        token_path = os.path.join(project_root, os.getenv("GOOGLE_TOKEN_SHEETS_PATH"))
+
         creds = None
-        if os.path.exists('token_sheets.json'):
-            creds = Credentials.from_authorized_user_file('token_sheets.json', SCOPES)
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
                 flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
                 creds = flow.run_local_server(port=0)
-            with open('token_sheets.json', 'w') as token:
+            with open(token_path, 'w') as token:
                 token.write(creds.to_json())
         return creds
 
@@ -119,7 +126,7 @@ class GoogleSheetsTool(Tool):
             rows.append(row_dict)
 
         return rows
-    
+
     def fetch_and_parse(self, context: Dict[str, Any]) -> dict:
         sheet_text = self.read_sheet(context)
         if sheet_text.startswith("❌"):

@@ -6,6 +6,11 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from inflect_gtm.components.tool.tool import Tool
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+load_dotenv(dotenv_path=os.path.join(project_root, ".env"))
 
 # Google Calendar API scope
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
@@ -13,10 +18,11 @@ SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
 def get_upcoming_events(context: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        creds = None
-        token_path = os.path.join(os.path.dirname(__file__), 'token.json')
-        cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+        # Use environment variables for credential paths
+        cred_path = os.path.join(project_root, os.getenv("GOOGLE_CREDENTIALS_PATH"))
+        token_path = os.path.join(project_root, os.getenv("GOOGLE_TOKEN_PATH"))
 
+        creds = None
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         if not creds or not creds.valid:
@@ -31,7 +37,7 @@ def get_upcoming_events(context: Dict[str, Any]) -> Dict[str, Any]:
         service = build('calendar', 'v3', credentials=creds)
 
         max_results = int(context.get("n", 5))
-        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+        now = datetime.datetime.utcnow().isoformat() + 'Z'
 
         events_result = service.events().list(
             calendarId='primary', timeMin=now,
@@ -62,13 +68,13 @@ class GoogleCalendarTool(Tool):
 
     def get_upcoming_events(self, context: Dict[str, Any]) -> Dict[str, Any]:
         return get_upcoming_events(context)
-    
+
 
 if __name__ == "__main__":
     print("🚀 Testing Google Calendar Tool...")
 
     tool = GoogleCalendarTool()
-    test_context = {"n": 3}  # 최대 3개의 다가오는 이벤트 요청
+    test_context = {"n": 3}
 
     result = tool.run(test_context)
 

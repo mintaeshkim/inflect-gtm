@@ -3,6 +3,7 @@ from inflect_gtm.tools.gmail.gmail_tool import GmailTool
 from inflect_gtm.tools.google_calendar.google_calendar_tool import GoogleCalendarTool
 from inflect_gtm.components.utils.meeting_log_parser import parse_meeting_log
 from inflect_gtm.components.utils.llm import call_llm
+from inflect_gtm.components.utils.rag_prompt_builder import build_followup_prompt
 
 
 class PostDemoFollowupAgent(Agent):
@@ -29,45 +30,36 @@ class PostDemoFollowupAgent(Agent):
 
         # Step 2: Fetch calendar events for additional context
         events_result = self.calendar_tool.get_upcoming_events({"n": 3})
-        self.global_memory.set("upcoming_events", events_result.get("events", []))
+        events = events_result.get("events", [])
+        self.global_memory.set("upcoming_events", events)
 
-        # Step 3: Generate follow-up email using prompt
-        summary = parsed.get("summary", "")
-        participants = ", ".join(parsed.get("participants", []))
-        action_items = "; ".join(parsed.get("action_items", []))
-        event_context = "\n".join(
-            f"- {e['summary']} ({e['start']} to {e['end']})"
-            for e in events_result.get("events", [])
-        )
+        # Step 3: Generate follow-up email using prompt builder
+        context["user_name"] = context.get("user_name", "Mintae Kim")
+        prompt = build_followup_prompt({
+            "meeting_log": parsed,
+            "calendar_events": events,
+            "user_name": context["user_name"]
+        })
 
-        email_prompt = f"""
-You are a helpful assistant. Based on the meeting summary, participants, and action items below, generate a professional follow-up email.
-
-Meeting Summary:
-{summary}
-
-Participants:
-{participants}
-
-Action Items:
-{action_items}
-
-Upcoming Calendar Events:
-{event_context}
-
-Respond with the full email including subject and body.
-"""
-
-        llm_response = call_llm(email_prompt)
-        self.local_memory.add("user", email_prompt)
+        llm_response = call_llm(prompt)
+        self.local_memory.add("user", prompt)
         self.local_memory.add("assistant", llm_response)
 
         # Step 4: Parse and send the email
         try:
             lines = llm_response.strip().splitlines()
-            subject_line = next(line for line in lines if line.lower().startswith("subject:"))
-            subject = subject_line.split(":", 1)[1].strip()
-            body = "\n".join(line for line in lines if not line.lower().startswith("subject:")).strip()
+            subject_line = next((line for line in lines if line.lower().startswith("subject:")), None)
+
+            if subject_line:
+                subject = subject_line.split(":", 1)[1].strip()
+                body = "\n".join(line for line in lines if not line.lower().startswith("subject:")).strip()
+            else:
+                subject = "Follow-up on recent meeting"
+                body = llm_response.strip()
+
+            # Clean body (remove undesired prefix like "Here is a professional follow-up email:")
+            if body.lower().startswith("here is a professional follow-up email"):
+                body = body.split("\n", 1)[-1].strip()
 
             to = context.get("to", "")
             if not to:
@@ -81,10 +73,10 @@ Respond with the full email including subject and body.
             self.global_memory.set("emails_sent", send_result)
         except Exception as e:
             print("❌ Failed to send email:", str(e))
-
+            subject, body = None, None
 
         return {
-            "summary": summary,
+            "summary": parsed.get("summary", ""),
             "email_subject": subject,
             "email_body": body
         }
@@ -104,7 +96,8 @@ Sarah asked for a demo of the integrations and seemed excited about the Slack in
 James requested a follow-up on pricing tiers. 
 Next steps: send them the latest slide deck and book a call with technical support.
 """,
-        "to": "customer@example.com"
+        "to": "customer@example.com",
+        "user_name": "Mintae Kim"
     }
 
     result = agent.run(context)

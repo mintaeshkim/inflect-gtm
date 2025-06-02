@@ -5,9 +5,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from typing import Dict, Any
 from inflect_gtm.components import Tool
+from dotenv import load_dotenv
 
+# Load environment variables from .env
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+load_dotenv(dotenv_path=os.path.join(project_root, ".env"))
 
+# Google Docs API scope
 SCOPES = ['https://www.googleapis.com/auth/documents']
+
 
 class GoogleDocsTool(Tool):
     def __init__(self):
@@ -15,16 +21,18 @@ class GoogleDocsTool(Tool):
 
     def load_credentials(self):
         creds = None
-        if os.path.exists('token_docs.json'):
-            creds = Credentials.from_authorized_user_file('token_docs.json', SCOPES)
+        cred_path = os.path.join(project_root, os.getenv("GOOGLE_CREDENTIALS_PATH"))
+        token_path = os.path.join(project_root, os.getenv("GOOGLE_TOKEN_DOCS_PATH"))
+
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                cred_path = os.path.join(os.path.dirname(__file__), './credentials.json')
                 flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
                 creds = flow.run_local_server(port=0)
-            with open('token_docs.json', 'w') as token:
+            with open(token_path, 'w') as token:
                 token.write(creds.to_json())
         return creds
 
