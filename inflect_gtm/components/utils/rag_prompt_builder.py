@@ -5,11 +5,11 @@ def build_followup_prompt(context: Dict[str, Any]) -> str:
     """
     Builds a prompt string for generating a professional follow-up email,
     using structured RAG context including meeting logs, calendar events,
-    document summaries, etc.
+    retrieved document snippets, etc.
     """
     log = context.get("meeting_log", {})
     events: List[Dict[str, str]] = context.get("calendar_events", [])
-    doc_summary = context.get("document_summary", "")
+    retrieved_docs: List[str] = context.get("retrieved_docs", [])
     user_name = context.get("user_name", "[Your Name]")
 
     participants = ", ".join(log.get("participants", [])) or "the client"
@@ -27,8 +27,10 @@ def build_followup_prompt(context: Dict[str, Any]) -> str:
             event_text += f"- {e['summary']} ({e['start']} to {e['end']})\n"
 
     doc_text = ""
-    if doc_summary:
-        doc_text = f"\n\nAttached document summary:\n{doc_summary}"
+    if retrieved_docs:
+        doc_text = "\n\nRelevant documents retrieved:\n"
+        for i, doc in enumerate(retrieved_docs[:5]):  # truncate to 5 docs max
+            doc_text += f"{i+1}. {doc.strip()}\n"
 
     prompt = f"""You are an AI assistant helping to write a professional follow-up email.
 
@@ -52,7 +54,7 @@ Best regards,
 
 
 if __name__ == "__main__":
-    print("🧪 Testing RAG prompt builder...")
+    print("🧪 Testing RAG prompt builder with retrieved_docs...")
     example_context = {
         "meeting_log": {
             "participants": ["Sarah", "James"],
@@ -66,7 +68,11 @@ if __name__ == "__main__":
                 "end": "2024-06-01T10:30:00Z"
             }
         ],
-        "document_summary": "Slide deck outlines onboarding flow and integration checklist.",
+        "retrieved_docs": [
+            "The onboarding checklist includes Slack and Salesforce integrations.",
+            "Pricing tiers are being updated to reflect the new usage model.",
+            "Customers in the sales department often prefer Slack integration over email-based workflows."
+        ],
         "user_name": "Mintae Kim"
     }
 
