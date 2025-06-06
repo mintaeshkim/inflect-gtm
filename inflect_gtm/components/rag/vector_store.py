@@ -106,6 +106,6 @@ if __name__ == "__main__":
     query = "What did James say about pricing?"
     results = query_similar(query)
 
-    print("\n🔍 Top Matches:")
+    print("\n Top Matches:")
     for r in results:
         print(f"- {r['text']} (distance={r['distance']:.4f})")
