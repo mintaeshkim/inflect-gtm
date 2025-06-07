@@ -12,10 +12,10 @@ def run_rag_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
 
     Steps:
     1. Parse the raw meeting log
-    2. Fetch upcoming Google Calendar events
+    2. Resolve Google Calendar events
     3. Retrieve similar documents from vector DB
     4. Construct a prompt using all retrieved context
-    5. Use LLM to generate the final email output
+    5. Generate follow-up email via LLM
 
     Args:
         context (Dict[str, Any]): Input data with meeting log and user metadata

@@ -1,4 +1,7 @@
+import json
 import datetime
+from dateutil import parser as dt_parser
+from difflib import SequenceMatcher
 from typing import Dict, Any, List, Optional
 from googleapiclient.discovery import build
 from inflect_gtm.components.tool.tool import Tool
@@ -38,8 +41,7 @@ class GoogleCalendarTool(Tool):
         except Exception as e:
             return {"error": str(e)}
 
-    def find_matching_event(self, parsed_meeting: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Find a calendar event that matches the parsed meeting log."""
+    def resolve_event(self, parsed_meeting: Dict[str, Any]) -> Dict[str, Any]:
         now = datetime.datetime.utcnow().isoformat() + "Z"
         events_result = self.service.events().list(
             calendarId="primary",
@@ -50,41 +52,61 @@ class GoogleCalendarTool(Tool):
         ).execute()
         events = events_result.get("items", [])
 
-        for event in events:
-            summary = event.get("summary", "").lower()
-            participants = [att.get("email", "").lower() for att in event.get("attendees", [])]
-            if parsed_meeting["summary"].lower() in summary:
-                return event
-            if any(p.lower() in participants for p in parsed_meeting.get("participants", [])):
-                return event
-        return None
+        parsed_start = self._try_parse_time(parsed_meeting.get("start_time"))
+        parsed_summary = parsed_meeting.get("subject", "").lower()
 
-    def add_event_from_meeting(self, parsed_meeting: Dict[str, Any]) -> Dict[str, Any]:
-        """Add new event to Google Calendar based on parsed meeting log."""
-        event = {
-            "summary": parsed_meeting.get("summary", "Follow-up Meeting"),
-            "start": {
-                "dateTime": parsed_meeting["start_time"],
-                "timeZone": "UTC",
-            },
-            "end": {
-                "dateTime": parsed_meeting["end_time"],
-                "timeZone": "UTC",
-            },
-            "attendees": [{"email": email} for email in parsed_meeting.get("participants", [])]
+        for event in events:
+            event_start = self._try_parse_time(event["start"].get("dateTime", event["start"].get("date")))
+            event_summary = event.get("summary", "").lower()
+            summary_score = SequenceMatcher(None, parsed_summary, event_summary).ratio()
+
+            if event_start and parsed_start and abs((event_start - parsed_start).total_seconds()) < 1800:
+                if summary_score > 0.6:
+                    calendar_participants = self.get_participants_from_event(event)
+                    emails = [p["email"] for p in calendar_participants if p["email"]]
+                    names = [p["displayName"] for p in calendar_participants if p["displayName"]]
+                    return {
+                        "found": True,
+                        "source": "calendar",
+                        "subject": parsed_meeting.get("subject", event.get("summary", "")),
+                        "start_time": event_start.isoformat(),
+                        "end_time": self._try_parse_time(event["end"].get("dateTime", event["end"].get("date"))).isoformat(),
+                        "participants": calendar_participants,
+                        "emails": emails,
+                        "names": names
+                    }
+
+        return {
+            "found": False,
+            "source": "log_only",
+            "subject": parsed_meeting.get("subject", ""),
+            "start_time": parsed_meeting.get("start_time", None),
+            "end_time": parsed_meeting.get("end_time", None),
+            "participants": [{"email": "", "displayName": name} for name in parsed_meeting.get("participants", [])],
+            "emails": [],
+            "names": parsed_meeting.get("participants", [])
         }
-        created_event = self.service.events().insert(calendarId="primary", body=event).execute()
-        return created_event
 
     def get_participants_from_event(self, event: Dict[str, Any]) -> List[Dict[str, str]]:
-        """Extract name and email of attendees."""
         attendees = event.get("attendees", [])
         return [{"email": a.get("email", ""), "displayName": a.get("displayName", "")} for a in attendees]
 
+    def _try_parse_time(self, time_str: Optional[str]) -> Optional[datetime.datetime]:
+        try:
+            return dt_parser.parse(time_str)
+        except Exception:
+            return None
 
-# Unit test
+
+# Test
 if __name__ == "__main__":
     print("🚀 Testing Google Calendar Tool...")
     tool = GoogleCalendarTool()
-    result = tool.get_upcoming_events({"n": 3})
-    print(result)
+    parsed_meeting = {
+        "subject": "Slack integration discussion",
+        "start_time": "2025-06-06T22:00:00Z",
+        "end_time": "2025-06-06T23:00:00Z",
+        "participants": ["Sarah", "James"]
+    }
+    result = tool.resolve_event(parsed_meeting)
+    print(json.dumps(result, indent=2))
