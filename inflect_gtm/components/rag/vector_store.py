@@ -4,6 +4,7 @@ import pickle
 from typing import List, Dict
 from sentence_transformers import SentenceTransformer
 
+
 # Define storage paths
 STORE_DIR = os.path.join(os.path.dirname(__file__), "faiss_store")
 INDEX_PATH = os.path.join(STORE_DIR, "index.faiss")
@@ -58,33 +59,10 @@ def add_documents(texts: List[str], metadatas: List[Dict] = None):
 
     embeddings = embedding_model.encode(texts, convert_to_numpy=True)
     index.add(embeddings)
-    metadata_store.extend(metadatas)
+    for text, meta in zip(texts, metadatas):
+        meta["text"] = text
+        metadata_store.append(meta)
     save()
-
-
-def query_similar(text: str, top_k: int = 3) -> List[Dict]:
-    """
-    Queries the vector store with a new input and returns top_k similar documents.
-
-    Args:
-        text: Input query string.
-        top_k: Number of most similar documents to return.
-
-    Returns:
-        A list of dicts containing matched text, metadata, and distance.
-    """
-    embedding = embedding_model.encode([text], convert_to_numpy=True)
-    distances, indices = index.search(embedding, top_k)
-
-    results = []
-    for dist, idx in zip(distances[0], indices[0]):
-        if idx < len(metadata_store):
-            results.append({
-                "text": metadata_store[idx].get("text", ""),
-                "metadata": metadata_store[idx],
-                "distance": float(dist)
-            })
-    return results
 
 
 # Unit test
@@ -98,14 +76,7 @@ if __name__ == "__main__":
         "James mentioned pricing tier concerns in the demo call.",
         "Follow-up with technical support was scheduled next week.",
     ]
-    dummy_metas = [{"text": t} for t in dummy_docs]
+    dummy_metas = [{} for _ in dummy_docs]
 
     add_documents(dummy_docs, dummy_metas)
-
-    # Perform a similarity search
-    query = "What did James say about pricing?"
-    results = query_similar(query)
-
-    print("\n Top Matches:")
-    for r in results:
-        print(f"- {r['text']} (distance={r['distance']:.4f})")
+    print("✅ Documents added and index saved.")
