@@ -8,13 +8,20 @@ from inflect_gtm.components.utils.llm import call_llm
 
 def run_rag_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Runs the complete RAG pipeline for generating a follow-up email.
+    Run the full RAG pipeline to generate a personalized follow-up email.
+
     Steps:
-    1. Parse meeting log
-    2. Fetch upcoming calendar events
-    3. Retrieve similar documents
-    4. Build prompt
-    5. Call LLM to generate follow-up email
+    1. Parse the raw meeting log
+    2. Fetch upcoming Google Calendar events
+    3. Retrieve similar documents from vector DB
+    4. Construct a prompt using all retrieved context
+    5. Use LLM to generate the final email output
+
+    Args:
+        context (Dict[str, Any]): Input data with meeting log and user metadata
+
+    Returns:
+        Dict[str, Any]: All intermediate and final outputs including prompt and LLM result
     """
     # Step 1: Parse meeting log
     meeting_log_raw = context.get("meeting_log", "")
@@ -25,10 +32,10 @@ def run_rag_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
     calendar_data = calendar_tool.get_upcoming_events({"n": 3})
     calendar_events = calendar_data.get("events", [])
 
-    # Step 3: Retrieve relevant documents using parsed summary
-    retrieved_docs = query_similar_documents(parsed_log.get("summary", ""), k=3)
+    # Step 3: Document retrieval from vector DB
+    retrieved_docs = query_similar_documents(parsed_log.get("summary", ""), top_k=3)
 
-    # Step 4: Build follow-up email prompt
+    # Step 4: Prompt generation
     prompt_context = {
         "meeting_log": parsed_log,
         "calendar_events": calendar_events,
@@ -37,7 +44,7 @@ def run_rag_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
     }
     prompt = build_followup_prompt(prompt_context)
 
-    # Step 5: Generate email using LLM
+    # Step 5: LLM generation
     llm_output = call_llm(prompt)
 
     return {
@@ -49,7 +56,7 @@ def run_rag_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-# Example usage
+# Pipeline test
 if __name__ == "__main__":
     test_context = {
         "meeting_log": """
