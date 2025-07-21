@@ -98,7 +98,7 @@ class GoogleCalendarTool(Tool):
             return None
 
 
-# Test
+# Unit test
 if __name__ == "__main__":
     print("🚀 Testing Google Calendar Tool...")
     tool = GoogleCalendarTool()
