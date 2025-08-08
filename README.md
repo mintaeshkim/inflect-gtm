@@ -117,3 +117,16 @@ The FastAPI server provides the following endpoints:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue.
+
+## Citing
+
+```
+@misc{inflect-gtm,
+  author = {Mintae Kim},
+  title = {Inflect GTM: An End-to-End Go-to-Market Agent},
+  year = {2025},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/mintaeshkim/inflect-gtm}},
+}
+```
