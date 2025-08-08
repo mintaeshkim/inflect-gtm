@@ -1,6 +1,6 @@
 # Inflect-GTM
 
-An End-to-End GTM (Go-to-Market) Agent project.
+An End-to-End GTM (Go-to-Market) Agent.
 
 This project provides a framework for building and running autonomous agents to automate Go-to-Market tasks. It includes a multi-agent system for customer onboarding and a FastAPI server for dynamically creating and managing agents.
 
